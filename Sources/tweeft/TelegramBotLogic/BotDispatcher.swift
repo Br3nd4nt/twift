@@ -43,6 +43,9 @@ final class BotDispatcher: TGDefaultDispatcher, @unchecked Sendable {
             
             
             let q = inline.query.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !q.isEmpty else {
+                return
+            }
             let textMessageContent = TGInputTextMessageContent(messageText: "You typed: \(q)")
             let messageContent = TGInputMessageContent.inputTextMessageContent(textMessageContent)
             
