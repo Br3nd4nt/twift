@@ -1,0 +1,27 @@
+// swift-tools-version:6.0
+import PackageDescription
+
+var packageDependencies: [Package.Dependency] = [
+    .package(url: "https://github.com/vapor/vapor.git", .upToNextMajor(from: "4.57.0")),
+]
+
+var targetDependencies: [PackageDescription.Target.Dependency] = [
+    .product(name: "Vapor", package: "vapor"),
+]
+
+packageDependencies.append(.package(url: "https://github.com/nerzh/swift-telegram-bot", .upToNextMajor(from: "4.2.0")))
+targetDependencies.append(.product(name: "SwiftTelegramBot", package: "swift-telegram-bot"))
+
+let package = Package(
+    name: "tweeft",
+    platforms: [
+        .macOS(.v12)
+    ],
+    dependencies: packageDependencies,
+    targets: [
+        .executableTarget(
+            name: "tweeft",
+            dependencies: targetDependencies
+        )
+    ]
+)
