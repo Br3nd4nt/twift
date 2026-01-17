@@ -18,7 +18,7 @@ x-shared_environment: &shared_environment
   
 services:
   app:
-    image: tweeft:latest
+    image: twift:latest
     build:
       context: .
     environment:

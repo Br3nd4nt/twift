@@ -1,6 +1,6 @@
 //
 //  BotService.swift
-//  Vapor-Telegram-Bot
+//  twift
 //
 //  Created by br3nd4nt on 16.01.2026.
 //

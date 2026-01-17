@@ -1,6 +1,6 @@
 //
 //  BotDispatcher.swift
-//  tweeft
+//  twift
 //
 //  Created by br3nd4nt on 16.01.2026.
 //
@@ -40,31 +40,33 @@ final class BotDispatcher: TGDefaultDispatcher, @unchecked Sendable {
     private func inlineHandler() async {
         await add(TGBaseHandler(name: "InlineQueryHandler") { update in
             guard let inline = update.inlineQuery else { return }
-            
-            
-            let q = inline.query.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !q.isEmpty else {
+            let trimmed = inline.query.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
                 return
             }
-            let textMessageContent = TGInputTextMessageContent(messageText: "You typed: \(q)")
-            let messageContent = TGInputMessageContent.inputTextMessageContent(textMessageContent)
-            
-            let article = TGInlineQueryResultArticle(
-                type: .article,
+            let tweet: Tweet
+            do {
+                tweet = try await TwitterService().getTweet(trimmed)
+            } catch {
+                return
+            }
+            let text = """
+\(tweet.text)
+[\(tweet.user_name)](\(trimmed))
+"""
+
+            let videoMessage = TGInlineQueryResultVideo(
+                type: .video,
                 id: UUID().uuidString,
-                title: q.isEmpty ? "Default result": "Resault for: \(q)",
-                inputMessageContent: messageContent,
-                replyMarkup: nil,
-                url: nil,
-                description: nil,
-                thumbnailUrl: nil,
-                thumbnailWidth: nil,
-                thumbnailHeight: nil
+                videoUrl: tweet.mediaURLs.first!,
+                mimeType: "video/mp4",
+                thumbnailUrl: tweet.user_profile_image_url,
+                title: "Tweet",
+                caption: text,
+                parseMode: "markdown"
             )
             
-            let articleQueryResult = TGInlineQueryResult.inlineQueryResultArticle(article)
-            
-            let results: [TGInlineQueryResult] = [articleQueryResult]
+            let results: [TGInlineQueryResult] = [TGInlineQueryResult.inlineQueryResultVideo(videoMessage)]
             
             let params = TGAnswerInlineQueryParams(
                 inlineQueryId: inline.id,
@@ -73,7 +75,7 @@ final class BotDispatcher: TGDefaultDispatcher, @unchecked Sendable {
                 isPersonal: true,
                 nextOffset: ""
             )
-            
+            print(params)
             try await self.bot.answerInlineQuery(params: params)
         })
     }
