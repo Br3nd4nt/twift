@@ -53,9 +53,8 @@ final class BotDispatcher: TGDefaultDispatcher, @unchecked Sendable {
                 }
                 let text = """
                 \(tweet.text)
-                <a href="\(trimmed)">\(tweet.user_name) - @TwiftBot</a>
+                <a href="\(trimmed)">\(tweet.user_name)</a> - @TwiftBot
                 """
-                print(tweet)
                 guard let media = tweet.media_extended.first else {
                     let message = TGInputMessageContent.inputTextMessageContent(
                         TGInputTextMessageContent(messageText: text)
@@ -107,36 +106,18 @@ final class BotDispatcher: TGDefaultDispatcher, @unchecked Sendable {
                     )
                     results = [.inlineQueryResultVideo(video)]
                 case .image:
-                    // for some reason this does not work if the tweet contains actual text
-                    // the image simply won't show up even though there wont be any errors anywhere
-                    if !self.fixTelegramImage(tweet.text) {
-                        let image = TGInlineQueryResultPhoto(
-                            type: .photo,
-                            id: UUID().uuidString,
-                            photoUrl: media.url,
-                            thumbnailUrl: media.url,
-                            title: "Tweet",
-                            caption: text,
-                            parseMode: "html",
-                            showCaptionAboveMedia: true
-                        )
-                        results = [.inlineQueryResultPhoto(image)]
-                    } else {
-                        let message = TGInputMessageContent.inputTextMessageContent(
-                            TGInputTextMessageContent(messageText: text)
-                        )
-                        
-                        results = [.inlineQueryResultArticle(
-                            TGInlineQueryResultArticle(
-                                type: .article,
-                                id: UUID().uuidString,
-                                title: "Tweet",
-                                inputMessageContent: message
-                            )
-                        )]
-                    }
+                    let image = TGInlineQueryResultPhoto(
+                        type: .photo,
+                        id: UUID().uuidString,
+                        photoUrl: media.url,
+                        thumbnailUrl: media.url,
+                        title: "Tweet",
+                        caption: text,
+                        parseMode: "html",
+                        showCaptionAboveMedia: true
+                    )
+                    results = [.inlineQueryResultPhoto(image)]
                 }
-                print(results)
                 let params = TGAnswerInlineQueryParams(
                     inlineQueryId: inline.id,
                     results: results,
@@ -146,11 +127,6 @@ final class BotDispatcher: TGDefaultDispatcher, @unchecked Sendable {
                 )
                 try await self.bot.answerInlineQuery(params: params)
             })
-    }
-    
-    private func fixTelegramImage(_ text: String) -> Bool {
-        let re = try! Regex("https?://t.co/[A-Za-z0-9]+")
-        return text.firstMatch(of: re) != nil
     }
 }
 
