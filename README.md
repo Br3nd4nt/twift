@@ -1,7 +1,5 @@
 # twift
 
-💧 A project built with the Vapor web framework.
+Send tweets in telegram with a simple copy-paste using inline bot!
 
---
-Get tweet contents in telegram with simple url copy-paste.
---
+###### 💧 A project built with the Vapor web framework.
