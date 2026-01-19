@@ -38,45 +38,119 @@ final class BotDispatcher: TGDefaultDispatcher, @unchecked Sendable {
     }
     
     private func inlineHandler() async {
-        await add(TGBaseHandler(name: "InlineQueryHandler") { update in
-            guard let inline = update.inlineQuery else { return }
-            let trimmed = inline.query.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else {
-                return
-            }
-            let tweet: Tweet
-            do {
-                tweet = try await TwitterService().getTweet(trimmed)
-            } catch {
-                return
-            }
-            let text = """
-\(tweet.text)
-[\(tweet.user_name)](\(trimmed))
-"""
-
-            let videoMessage = TGInlineQueryResultVideo(
-                type: .video,
-                id: UUID().uuidString,
-                videoUrl: tweet.mediaURLs.first!,
-                mimeType: "video/mp4",
-                thumbnailUrl: tweet.user_profile_image_url,
-                title: "Tweet",
-                caption: text,
-                parseMode: "markdown"
-            )
-            
-            let results: [TGInlineQueryResult] = [TGInlineQueryResult.inlineQueryResultVideo(videoMessage)]
-            
-            let params = TGAnswerInlineQueryParams(
-                inlineQueryId: inline.id,
-                results: results,
-                cacheTime: 60,
-                isPersonal: true,
-                nextOffset: ""
-            )
-            print(params)
-            try await self.bot.answerInlineQuery(params: params)
-        })
+        await add(
+            TGBaseHandler(name: "InlineQueryHandler") { update in
+                guard let inline = update.inlineQuery else { return }
+                let trimmed = inline.query.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else {
+                    return
+                }
+                let tweet: Tweet
+                do {
+                    tweet = try await TwitterService().getTweet(trimmed)
+                } catch {
+                    return
+                }
+                let text = """
+                \(tweet.text)
+                <a href="\(trimmed)">\(tweet.user_name) - @TwiftBot</a>
+                """
+                print(tweet)
+                guard let media = tweet.media_extended.first else {
+                    let message = TGInputMessageContent.inputTextMessageContent(
+                        TGInputTextMessageContent(messageText: text)
+                    )
+                    let params = TGAnswerInlineQueryParams(
+                        inlineQueryId: inline.id,
+                        
+                        results: [.inlineQueryResultArticle(
+                            TGInlineQueryResultArticle(
+                                type: .article,
+                                id: UUID().uuidString,
+                                title: "Tweet",
+                                inputMessageContent: message
+                            )
+                        )],
+                        cacheTime: 60,
+                        isPersonal: true,
+                        nextOffset: ""
+                    )
+                    try await self.bot.answerInlineQuery(params: params)
+                    return
+                }
+                let results: [TGInlineQueryResult]
+                switch media.type {
+                case .gif:
+                    let gif = TGInlineQueryResultGif(
+                        type: .gif,
+                        id: UUID().uuidString,
+                        gifUrl: media.url,
+                        thumbnailUrl: tweet.user_profile_image_url,
+                        title: "Tweet",
+                        caption: text,
+                        parseMode: "html",
+                        showCaptionAboveMedia: true
+                    )
+                    
+                    results = [.inlineQueryResultGif(gif)]
+                case .video:
+                    let video = TGInlineQueryResultVideo(
+                        type: .video,
+                        id: UUID().uuidString,
+                        videoUrl: media.url,
+                        mimeType: "video/mp4",
+                        thumbnailUrl: tweet.user_profile_image_url,
+                        title: "Tweet",
+                        caption: text,
+                        parseMode: "html",
+                        showCaptionAboveMedia: true
+                    )
+                    results = [.inlineQueryResultVideo(video)]
+                case .image:
+                    // for some reason this does not work if the tweet contains actual text
+                    // the image simply won't show up even though there wont be any errors anywhere
+                    if !self.fixTelegramImage(tweet.text) {
+                        let image = TGInlineQueryResultPhoto(
+                            type: .photo,
+                            id: UUID().uuidString,
+                            photoUrl: media.url,
+                            thumbnailUrl: media.url,
+                            title: "Tweet",
+                            caption: text,
+                            parseMode: "html",
+                            showCaptionAboveMedia: true
+                        )
+                        results = [.inlineQueryResultPhoto(image)]
+                    } else {
+                        let message = TGInputMessageContent.inputTextMessageContent(
+                            TGInputTextMessageContent(messageText: text)
+                        )
+                        
+                        results = [.inlineQueryResultArticle(
+                            TGInlineQueryResultArticle(
+                                type: .article,
+                                id: UUID().uuidString,
+                                title: "Tweet",
+                                inputMessageContent: message
+                            )
+                        )]
+                    }
+                }
+                print(results)
+                let params = TGAnswerInlineQueryParams(
+                    inlineQueryId: inline.id,
+                    results: results,
+                    cacheTime: 60,
+                    isPersonal: true,
+                    nextOffset: ""
+                )
+                try await self.bot.answerInlineQuery(params: params)
+            })
+    }
+    
+    private func fixTelegramImage(_ text: String) -> Bool {
+        let re = try! Regex("https?://t.co/[A-Za-z0-9]+")
+        return text.firstMatch(of: re) != nil
     }
 }
+
