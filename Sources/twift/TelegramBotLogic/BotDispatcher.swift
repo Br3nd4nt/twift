@@ -53,11 +53,12 @@ final class BotDispatcher: TGDefaultDispatcher, @unchecked Sendable {
                 }
                 let text = """
                 \(tweet.text)
+                <a></a>
                 <a href="\(trimmed)">\(tweet.user_name)</a> - @TwiftBot
                 """
                 guard let media = tweet.media_extended.first else {
                     let message = TGInputMessageContent.inputTextMessageContent(
-                        TGInputTextMessageContent(messageText: text)
+                        TGInputTextMessageContent(messageText: text, parseMode: "html")
                     )
                     let params = TGAnswerInlineQueryParams(
                         inlineQueryId: inline.id,
@@ -67,7 +68,7 @@ final class BotDispatcher: TGDefaultDispatcher, @unchecked Sendable {
                                 type: .article,
                                 id: UUID().uuidString,
                                 title: "Tweet",
-                                inputMessageContent: message
+                                inputMessageContent: message,
                             )
                         )],
                         cacheTime: 60,
@@ -78,6 +79,7 @@ final class BotDispatcher: TGDefaultDispatcher, @unchecked Sendable {
                     return
                 }
                 let results: [TGInlineQueryResult]
+                self.log.debug("media type: \(media.type)")
                 switch media.type {
                 case .gif:
                     let gif = TGInlineQueryResultGif(
