@@ -8,7 +8,11 @@ public func configure(_ app: Application) async throws {
             exit(1)
         }
     
-    app.logger.logLevel = .info
+    if let portString = ProcessInfo.processInfo.environment["PORT"], let port = Int(portString) {
+        app.http.server.configuration.port = port
+    }
+    
+    app.logger.logLevel = .debug
     app.bot = try await .init(connectionType: .longpolling(),
                                      tgClient: TGClientDefault(),
                                      tgURI: TGBot.standardTGURL,
